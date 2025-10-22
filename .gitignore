@@ -1,0 +1,4 @@
+node_modules/
+vector_tiles/
+image_tiles/
+.vscode/

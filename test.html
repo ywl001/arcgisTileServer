@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+    <title>统一切片服务测试 (按钮切换)</title>
+    
+    <link rel="stylesheet" href="https://js.arcgis.com/4.29/esri/themes/light/main.css" />
+    <script src="https://js.arcgis.com/4.29/"></script>
+
+    <style>
+        html, body, #viewDiv {
+            padding: 0;
+            margin: 0;
+            height: 100%;
+            width: 100%;
+        }
+        /* 样式：用于放置切换按钮 */
+        #buttonContainer {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            display: flex;
+            gap: 10px;
+        }
+        .toggle-button {
+            padding: 8px 15px;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            background-color: #f8f8f8;
+            transition: background-color 0.2s;
+        }
+        .toggle-button.active {
+            background-color: #0079c1;
+            color: white;
+            border-color: #0079c1;
+        }
+    </style>
+</head>
+<body>
+    <div id="viewDiv"></div>
+    
+    <div id="buttonContainer">
+        <div id="btnRaster" class="toggle-button active">栅格影像 (MJ)</div>
+        <div id="btnVector" class="toggle-button">矢量底图 (孟津)</div>
+    </div>
+
+    <script>
+        require([
+            "esri/Map",
+            "esri/views/MapView",
+            "esri/layers/TileLayer",
+            "esri/layers/VectorTileLayer",
+            "esri/Basemap", // 🌟 引入 Basemap 模块
+            "esri/geometry/Extent",
+            "esri/geometry/SpatialReference"
+        ], (Map, MapView, TileLayer, VectorTileLayer, Basemap, Extent, SpatialReference) => {
+
+            const spatialReference = new SpatialReference({ wkid: 4326 });
+            
+            const mjExtent = new Extent({
+                xmin: 112.0, ymin: 34.6, xmax: 112.9, ymax: 35.1, spatialReference: spatialReference
+            });
+
+            // ----------------------------------------------------
+            // 1. 定义图层（注意：它们将作为 Basemap 的基础图层）
+            // ----------------------------------------------------
+            
+            // 栅格切片
+            const rasterLayer = new TileLayer({
+                url: "http://localhost:3060/image_tiles/mj_19/MapServer", 
+                title: "栅格影像 (MJ)", 
+                id: "raster_mj",
+                visible: true // 默认可见
+            });
+
+            // 矢量切片
+            const vectorLayer = new VectorTileLayer({
+                url: "http://localhost:3060/vector_tiles/mengjin/p12", 
+                title: "矢量底图 (孟津)", 
+                id: "vector_mengjin",
+                visible: false // 默认不可见，让栅格图层先显示
+            });
+            
+            // ----------------------------------------------------
+            // 2. 创建 Map, 并将所有图层添加到 Basemap 的 baseLayers
+            // ----------------------------------------------------
+            
+            const map = new Map({
+                // 创建一个自定义的底图，并将两个图层都加入
+                basemap: new Basemap({
+                    baseLayers: [rasterLayer, vectorLayer],
+                    title: "自定义底图组"
+                })
+            });
+
+            const view = new MapView({
+                container: "viewDiv",
+                map: map,
+                extent: mjExtent, 
+                zoom: 12 
+            });
+
+            // ----------------------------------------------------
+            // 3. 切换图层逻辑
+            // ----------------------------------------------------
+            const btnRaster = document.getElementById("btnRaster");
+            const btnVector = document.getElementById("btnVector");
+
+            function setActiveLayer(activeId) {
+                // 遍历 Map 中 Basemap 的所有基础图层
+                map.basemap.baseLayers.forEach(layer => {
+                    if (layer.id === activeId) {
+                        layer.visible = true;
+                    } else {
+                        layer.visible = false;
+                    }
+                });
+
+                // 更新按钮样式
+                btnRaster.classList.remove("active");
+                btnVector.classList.remove("active");
+                
+                if (activeId === "raster_mj") {
+                    btnRaster.classList.add("active");
+                } else if (activeId === "vector_mengjin") {
+                    btnVector.classList.add("active");
+                }
+            }
+
+            // 绑定点击事件
+            btnRaster.addEventListener("click", () => setActiveLayer("raster_mj"));
+            btnVector.addEventListener("click", () => setActiveLayer("vector_mengjin"));
+
+            view.when(() => {
+                console.log("地图视图加载完成，现在可以通过按钮切换底图。");
+                
+                // 确保初始状态正确：只有栅格图层可见
+                setActiveLayer("raster_mj");
+            });
+        });
+    </script>
+</body>
+</html>
