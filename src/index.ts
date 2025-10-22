@@ -205,8 +205,6 @@ app.get(`/${path.basename(RASTER_TILE_ROOT_DIR)}/:mapName/MapServer/tile/:level/
 
 
     let conf = await getConfXml(mapName!)
-
-    // const tileType = conf.tileType;
     const { tileType, imageFormat, packetSize } = conf;
 
     if (tileType === 'loose') {
